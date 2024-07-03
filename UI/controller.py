@@ -11,13 +11,50 @@ class Controller:
         self._model = model
 
     def handle_graph(self, e):
-        pass
+        if self._view.ddyear.value is None:
+            self._view.create_alert("Selezionare un anno!")
+            return
+        anno = int(self._view.ddyear.value)
+        if self._view.ddshape.value is None or self._view.ddshape.value == "":
+            self._view.create_alert("Selezionare una shape!")
+            return
+        shape = self._view.ddshape.value
+        self._view.txt_result1.controls.clear()
+        self._model.create_graph(anno, shape)
+        self._view.txt_result1.controls.append(ft.Text(f"Numero di vertici: {self._model.get_num_of_nodes()}"))
+        self._view.txt_result1.controls.append(ft.Text(f"Numero di archi: {self._model.get_num_of_edges()}"))
+        self._view.txt_result1.controls.append(
+            ft.Text(f"Il grafo ha: {self._model.get_num_connesse()} componenti connesse"))
+        self._view.update_page()
+        connessa = self._model.get_largest_connessa()
+        self._view.txt_result1.controls.append(ft.Text(f"La componente connessa più grande "
+                                                       f"è costituita da {len(connessa)} nodi:"))
+        for c in connessa:
+            self._view.txt_result1.controls.append(ft.Text(c))
+
+        self._view.btn_path.disabled = False
+        self._view.update_page()
 
     def handle_path(self, e):
-        pass
+        self._view.txt_result2.controls.clear()
+
+        path = self._model.cammino_ottimo()
+        self._view.txt_result2.controls.append(ft.Text(f"Il percorso ottimo è costituito da {len(path)} nodi:"))
+        for p in path:
+            self._view.txt_result2.controls.append(ft.Text(f"{p} - {p.latitude}"))
+
+        self._view.update_page()
 
     def fill_ddyear(self):
-        pass
+        years = self._model.get_years()
+        self._view.ddyear.options.clear()
+        for y in years:
+            self._view.ddyear.options.append(ft.dropdown.Option(f"{y}"))
 
-    def fill_ddshape(self, e):
-        pass
+    def fill_ddshape(self):
+        self._view.ddshape.options.clear()
+        self._view.ddshape.value = None
+        shapes = self._model.loadShapes()
+        for s in shapes:
+            self._view.ddshape.options.append(ft.dropdown.Option(s))
+        self._view.update_page()
