@@ -23,14 +23,10 @@ class Controller:
         self._model.create_graph(anno, shape)
         self._view.txt_result1.controls.append(ft.Text(f"Numero di vertici: {self._model.get_num_of_nodes()}"))
         self._view.txt_result1.controls.append(ft.Text(f"Numero di archi: {self._model.get_num_of_edges()}"))
-        self._view.txt_result1.controls.append(
-            ft.Text(f"Il grafo ha: {self._model.get_num_connesse()} componenti connesse"))
-        self._view.update_page()
-        connessa = self._model.get_largest_connessa()
-        self._view.txt_result1.controls.append(ft.Text(f"La componente connessa più grande "
-                                                       f"è costituita da {len(connessa)} nodi:"))
-        for c in connessa:
-            self._view.txt_result1.controls.append(ft.Text(c))
+        self._view.txt_result1.controls.append(ft.Text(f"I 5 archi di peso maggiore sono:"))
+        top_edges = self._model.get_top_edges()
+        for edge in top_edges:
+            self._view.txt_result1.controls.append(ft.Text(f"{edge[0].id} -> {edge[1].id} | weight = {edge[2]['weight']}"))
 
         self._view.btn_path.disabled = False
         self._view.update_page()
@@ -51,10 +47,11 @@ class Controller:
         for y in years:
             self._view.ddyear.options.append(ft.dropdown.Option(f"{y}"))
 
-    def fill_ddshape(self):
+    def fill_ddshape(self, e):
+        anno = int(self._view.ddyear.value)
         self._view.ddshape.options.clear()
         self._view.ddshape.value = None
-        shapes = self._model.loadShapes()
+        shapes = self._model.get_shapes_year(anno)
         for s in shapes:
             self._view.ddshape.options.append(ft.dropdown.Option(s))
         self._view.update_page()

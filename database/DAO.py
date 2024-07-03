@@ -74,29 +74,22 @@ class DAO():
         return result
 
     @staticmethod
-    def get_states_year(anno: int):
+    def get_shapes_year(anno: int):
         cnx = DBConnect.get_connection()
         result = []
         if cnx is None:
             print("Connessione fallita")
         else:
             cursor = cnx.cursor(dictionary=True)
-            query = """SELECT DISTINCT st.*
-                       FROM sighting sig, state st 
-                       WHERE sig.state=st.id AND YEAR(sig.datetime)=%s
-                       ORDER BY Name ASC"""
+            query = """SELECT DISTINCT s.shape
+                        FROM sighting s 
+                        WHERE YEAR(s.datetime)=%s
+                        ORDER BY shape ASC"""
             cursor.execute(query, (anno,))
 
             for row in cursor:
-                result.append(
-                    State(row["id"],
-                          row["Name"],
-                          row["Capital"],
-                          row["Lat"],
-                          row["Lng"],
-                          row["Area"],
-                          row["Population"],
-                          row["Neighbors"]))
+                if row["shape"] != "":
+                    result.append(row["shape"])
 
             cursor.close()
             cnx.close()
@@ -104,7 +97,7 @@ class DAO():
 
 
     @staticmethod
-    def get_nodes(year: int, state: str):
+    def get_nodes(year: int, shape: str):
         cnx = DBConnect.get_connection()
         result = []
         if cnx is None:
@@ -114,8 +107,8 @@ class DAO():
             query = """SELECT *
                         FROM sighting s 
                         WHERE Year(s.datetime)=%s AND s.shape =%s
-                        ORDER BY s.datetime ASC"""
-            cursor.execute(query, (year, state,))
+                        ORDER BY s.longitude ASC"""
+            cursor.execute(query, (year, shape,))
 
             for row in cursor:
                 result.append(Sighting(**row))
