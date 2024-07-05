@@ -3,14 +3,16 @@ import copy
 from database.DAO import DAO
 import networkx as nx
 
+from model.sighting import Sighting
+
 
 class Model:
     def __init__(self):
         self._grafo = nx.DiGraph()
         self._nodes = []
         self._cammino_ottimo = []
-        self._lunghezza_ottima = 0
-        self.loadShapes()
+        self._score_ottimo = 0
+        self._occorrenze_mese = dict.fromkeys(range(1, 13), 0)
 
     def get_years(self):
         return DAO.get_years()
@@ -49,42 +51,57 @@ class Model:
 
     def cammino_ottimo(self):
         self._cammino_ottimo = []
-        self._lunghezza_ottima = 0
+        self._score_ottimo = 0
+        self._occorrenze_mese = dict.fromkeys(range(1, 13), 0)
 
         for nodo in self._nodes:
             successivi_durata_crescente = self._calcola_successivi(nodo)
             self._calcola_cammino_ricorsivo([nodo], successivi_durata_crescente)
-        return self._cammino_ottimo
+        return self._cammino_ottimo, self._score_ottimo
 
-    def _calcola_successivi(self, nodo):
-        """
-        Calcola il sottoinsieme dei successivi ad un nodo che hanno durata superiore a quella del nodo.
-        """
-        successivi = self._grafo.neighbors(nodo)
-        successivi_ammissibili = []
-        for s in successivi:
-            if s.duration > nodo.duration:
-                successivi_ammissibili.append(s)
-        return successivi_ammissibili
-
-    def _calcola_cammino_ricorsivo(self, parziale, successivi):
+    def _calcola_cammino_ricorsivo(self, parziale: list[Sighting], successivi: list[Sighting]):
         if len(successivi) == 0:
-            if len(parziale) > self._lunghezza_ottima:
-                self._lunghezza_ottima = len(parziale)
+            score = Model._calcola_score(parziale)
+            if score > self._score_ottimo:
+                self._score_ottimo = score
                 self._cammino_ottimo = copy.deepcopy(parziale)
         else:
             for nodo in successivi:
-                if len(parziale) == 0 or parziale[-1].latitude < nodo.latitude:
-                    parziale.append(nodo)
-                    # nuovi successivi
-                    nuovi_successivi = self._calcola_successivi(nodo)
-                    # ricorsione
-                    self._calcola_cammino_ricorsivo(parziale, nuovi_successivi)
-                    # backtracking
-                    parziale.pop()
+                # aggiungo il nodo in parziale ed aggiorno le occorrenze del mese corrispondente
+                parziale.append(nodo)
+                self._occorrenze_mese[nodo.datetime.month] += 1
+                # nuovi successivi
+                nuovi_successivi = self._calcola_successivi(nodo)
+                # ricorsione
+                self._calcola_cammino_ricorsivo(parziale, nuovi_successivi)
+                # backtracking: visto che sto usando un dizionario nella classe per le occorrenze, quando faccio il
+                # backtracking vado anche a togliere una visita dalle occorrenze del mese corrispondente al nodo che
+                # vado a sottrarre
+                self._occorrenze_mese[parziale[-1].datetime.month] += 1
+                parziale.pop()
 
+    def _calcola_successivi(self, nodo: Sighting) -> list[Sighting]:
+        """
+        Calcola il sottoinsieme dei successivi ad un nodo che hanno durata superiore a quella del nodo.
+        """
+        successivi = self._grafo.successors(nodo)
+        successivi_ammissibili = []
+        for s in successivi:
+            if s.duration > nodo.duration and self._occorrenze_mese[nodo.datetime.month] < 3:
+                successivi_ammissibili.append(s)
+        return successivi_ammissibili
 
-    def loadShapes(self):
-        self._listShapes = DAO.getAllShapes()
-
-        return self._listShapes
+    @staticmethod
+    def _calcola_score(cammino: list[Sighting]) -> int:
+        """
+        Funzione che calcola il punteggio di un cammino.
+        :param cammino: il cammino che si vuole valutare.
+        :return: il punteggio
+        """
+        # parte del punteggio legata al numero di tappe
+        score = 100 * len(cammino)
+        # parte del punteggio legata al mese
+        for i in range(1, len(cammino)):
+            if cammino[i].datetime.month == cammino[i - 1].datetime.month:
+                score += 200
+        return score
