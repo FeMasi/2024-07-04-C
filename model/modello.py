@@ -31,6 +31,9 @@ class Model:
                 if self._nodes[i].state == self._nodes[j].state and self._nodes[i].longitude < self._nodes[j].longitude:
                     weight = self._nodes[j].longitude - self._nodes[i].longitude
                     self._grafo.add_edge(self._nodes[i], self._nodes[j], weight= weight)
+                elif self._nodes[i].state == self._nodes[j].state and self._nodes[i].longitude > self._nodes[j].longitude:
+                    weight = self._nodes[i].longitude - self._nodes[j].longitude
+                    self._grafo.add_edge(self._nodes[j], self._nodes[i], weight= weight)
 
     def get_top_edges(self):
         sorted_edges = sorted(self._grafo.edges(data=True), key=lambda edge: edge[2].get('weight'), reverse=True)
@@ -84,7 +87,8 @@ class Model:
 
     def _calcola_successivi(self, nodo: Sighting) -> list[Sighting]:
         """
-        Calcola il sottoinsieme dei successivi ad un nodo che hanno durata superiore a quella del nodo.
+        Calcola il sottoinsieme dei successivi ad un nodo che hanno durata superiore a quella del nodo e che non eccedano
+        il numero massimo di occorrenze per un dato mese.
         """
         successivi = self._grafo.successors(nodo)
         successivi_ammissibili = []
